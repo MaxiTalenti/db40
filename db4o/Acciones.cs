@@ -23,15 +23,19 @@ namespace db4o
         /// <summary>
         /// Listar el título de todos los libros de los cuales se tiene más de un ejemplar.
         /// </summary>
-        /// <returns>Libros con más de un ejemplar</returns>
-        public List<Libro> getLibrosMasDeunEjemplar()
+        /// <returns>Títulos de libros con más de un ejemplar</returns>
+        public List<string> getTituloLibrosMasDeunEjemplar()
         {
-            List<Libro> Libros = new List<Libro>();
-            foreach (var a in db.Query<Libro>().GroupBy(z => z.ISBN).Select(g => new { g.Key, Count = g.Count() }))
+            List<string> Titulos = new List<string>();
+            foreach (var a in db.Query<Ejemplar>()
+                .Where(z => z.Libro != null)
+                .GroupBy(z => z.Libro.Titulo)
+                .Select(g => new { g.Key, Count = g.Count() })
+                .Where(z => z.Count > 1))
             {
-                Libros.Add(db.Query<Libro>().Where(z => z.ISBN == a.Key).SingleOrDefault());
+                Titulos.Add(db.Query<Libro>().Where(z => z.Titulo == a.Key).SingleOrDefault().Titulo);
             }
-            return Libros;
+            return Titulos;
         }
 
         /// <summary>
@@ -39,21 +43,64 @@ namespace db4o
         /// autores que han realizado al menos 5 publicaciones en los últimos 5 años.
         /// </summary>
         /// <returns>Autores que han realizado al menos 5 publicaciones en los últimos 5 años</returns>
-        public List<AutorPublicacion> getAutoresMasdeCincoPublicaciones5Años()
+        public List<AutoresYPublicaciones> getAutoresMasdeCincoPublicaciones5Años()
         {
-            List<AutorPublicacion> autores = new List<AutorPublicacion>();
-            foreach(var a in db.Query<AutorPublicacion>())
+            List<AutoresYPublicaciones> autores = new List<AutoresYPublicaciones>();
+
+            // Recorre todos los autores
+            foreach (var autor in db.Query<AutorPublicacion>())
             {
-                if (a.Publicaciones.Where(z => z.Año >= DateTime.Now.Year).Count() >= 5)
-                    autores.Add(a);
+                foreach (var articulo in db.Query<Articulo>().Where(z => z.Autores.Contains(autor)))
+                {
+                    if ((articulo.Año - DateTime.Now.Year) <= 5)
+                    {
+                        AutoresYPublicaciones aut = new AutoresYPublicaciones();
+                        aut.Nombre = autor.Nombre;
+                        aut.Apellido = autor.Apellido;
+                        aut.TituloPublicacion = articulo.Titulo;
+                        autores.Add(aut);
+                    }
+                }
+
+                foreach (var libro in db.Query<Libro>().Where(z => z.Autores.Contains(autor)))
+                {
+                    if ((libro.Año - DateTime.Now.Year) <= 5)
+                    {
+                        AutoresYPublicaciones aut = new AutoresYPublicaciones();
+                        aut.Nombre = autor.Nombre;
+                        aut.Apellido = autor.Apellido;
+                        aut.TituloPublicacion = libro.Titulo;
+                        autores.Add(aut);
+                    }
+                }
+
+                if (autores.Where(z => z.Nombre == autor.Nombre && z.Apellido == autor.Apellido).Count() < 5)
+                    autores.RemoveAll(z => z.Nombre == autor.Nombre && z.Apellido == autor.Apellido);
             }
+
             return autores;
         }
 
+        /// <summary>
+        /// Listar el nombre de los usuarios que han solicitado solo un préstamo en el último año.
+        /// </summary>
+        /// <returns>Usuarios que solo solicitaron un préstamos en el último año</returns>
+        public List<string> getUsuariosUnPrestamo()
+        {
+            db.Query<>
+        }
+
         /*
-         * Listar el nombre de los usuarios que han solicitado solo un préstamo en el último año.
          * Lista el nombre de todos los usuarios que han realizado en promedio más de 30 reservas en los últimos dos años.
          * Listar el título de las publicaciones, el año de publicación, y los autores de aquellas cuyo año de publicación sea par. 
          */
     }
+
+    public class AutoresYPublicaciones
+    {
+        public string Nombre { get; set; }
+        public string Apellido { get; set; }
+        public string TituloPublicacion { get; set; }
+    }
+
 }
