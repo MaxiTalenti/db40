@@ -20,12 +20,18 @@ namespace db4o
     public class Usuario
     {
         public string Nombre { get; set; }
-        public List<Ejemplar> Ejemplares { get; set; }
+    }
+
+    public class Prestamos
+    {
+        public Usuario Usuario { get; set; }
+        public Ejemplar Ejemplar { get; set; }
+        public DateTime inicio { get; set; }
+        public DateTime fin { get; set; }
     }
 
     public class Ejemplar
     {
-        public int Id { get; set; }
         public Revista Revista { get; set; }
         public Libro Libro { get; set; }
         public Articulo Articulo { get; set; }
@@ -43,7 +49,6 @@ namespace db4o
     {
         IObjectContainer db;
 
-        public int Id { get; set; }
         public string Titulo { get; set; }
         public int Año { get; set; }
 

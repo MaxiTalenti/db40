@@ -87,13 +87,53 @@ namespace db4o
         /// <returns>Usuarios que solo solicitaron un préstamos en el último año</returns>
         public List<string> getUsuariosUnPrestamo()
         {
-            db.Query<>
+            return db.Query<Prestamos>().Where(z => z.inicio.Year == DateTime.Now.Year)
+                .Select(z => z.Usuario.Nombre)
+                .Distinct().ToList();
         }
 
-        /*
-         * Lista el nombre de todos los usuarios que han realizado en promedio más de 30 reservas en los últimos dos años.
-         * Listar el título de las publicaciones, el año de publicación, y los autores de aquellas cuyo año de publicación sea par. 
-         */
+        // Lista el nombre de todos los usuarios que han realizado en promedio más de 30 reservas en los últimos dos años.
+        public List<string> getUsuariosMasDe30Reservas()
+        {
+            return db.Query<Prestamos>().Where(z => z.inicio >= (DateTime.Now.AddYears(-2)))
+                .GroupBy(z => z.Usuario.Nombre)
+                .Select(g => new { g.Key, Count = g.Count() })
+                .Where(z => z.Count > 30)
+                .Select(z => z.Key).ToList();
+        }
+
+        // Listar el título de las publicaciones, el año de publicación,
+        // y los autores de aquellas cuyo año de publicación sea par. 
+        public List<Tuple<Publicacion, List<AutorPublicacion>>> getPublicacionesconAutorAñoPar()
+        {
+            List<Tuple<Publicacion, List<AutorPublicacion>>> tupla = new List<Tuple<Publicacion, List<AutorPublicacion>>>();
+            
+            foreach (var a in db.Query<Articulo>().Where(z => z.Año % 2 == 0).Select(x => new { x.Titulo, x.Año, x.Autores }))
+            {
+                Publicacion pub = new Publicacion()
+                {
+                    Titulo = a.Titulo,
+                    Año = a.Año
+                };
+                List<AutorPublicacion> autores = new List<AutorPublicacion>();
+                tupla.Add(new Tuple<Publicacion, List<AutorPublicacion>>(pub, a.Autores));
+            }
+
+            foreach (var a in db.Query<Libro>().Where(z => z.Año % 2 == 0).Select(x => new { x.Titulo, x.Año, x.Autores }))
+            {
+                Publicacion pub = new Publicacion()
+                {
+                    Titulo = a.Titulo,
+                    Año = a.Año
+                };
+                List<AutorPublicacion> autores = new List<AutorPublicacion>();
+                tupla.Add(new Tuple<Publicacion, List<AutorPublicacion>>(pub, a.Autores));
+            }
+
+            return tupla;
+        }
+
+         
     }
 
     public class AutoresYPublicaciones
