@@ -14,11 +14,190 @@ namespace db4o
         {
             db = database;
         }
+
         public void CrearUsuario(Usuario usu)
         {
-            db.Store(usu);
-            db.Commit();
+            try
+            {
+                if (db.Query<Usuario>().Where(z => z.Nombre == usu.Nombre).Count() > 0)
+                    Console.WriteLine("Ya existe un usuario con ese nombre");
+                else
+                {
+                    db.Store(usu);
+                    db.Commit();
+                    Console.WriteLine(String.Format("El usuario {0} se creo correctamente", usu.Nombre));
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("El usuario {0} no pudo crearse", usu.Nombre);
+                Console.WriteLine(e);
+            }
         }
+
+        public List<UsuarioModel> ListarUsuarios()
+        {
+            List<UsuarioModel> lista = new List<UsuarioModel>();
+            foreach (var a in db.Query<Usuario>())
+            {
+                lista.Add(new UsuarioModel()
+                {
+                    Id = db.Ext().GetID(a),
+                    Nombre = a.Nombre
+                });
+            }
+            return lista;
+        }
+
+        public void CrearAutor(AutorPublicacion autor)
+        {
+            try
+            {
+                if (db.Query<AutorPublicacion>().Where(z => z.Nombre == autor.Nombre)
+                    .Where(z => z.Apellido == autor.Apellido)
+                    .Count() > 0)
+                    Console.WriteLine("El autor {0} {1} ya existe");
+                else
+                {
+                    db.Store(autor);
+                    db.Commit();
+                    Console.WriteLine(String.Format("El autor {0} {1} se creo correctamente",
+                        autor.Nombre, autor.Apellido));
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("El autor {0} {1} no pudo crearse", autor.Nombre, autor.Apellido);
+                Console.WriteLine(e);
+            }
+        }
+
+        public List<AutorPublicacionModel> ListarAutores()
+        {
+            List<AutorPublicacionModel> lista = new List<AutorPublicacionModel>();
+            foreach (var a in db.Query<AutorPublicacion>())
+            {
+                lista.Add(new AutorPublicacionModel()
+                {
+                    Id = db.Ext().GetID(a),
+                    Nombre = a.Nombre,
+                    Apellido = a.Apellido
+                });
+            }
+            return lista;
+        }
+
+        public AutorPublicacion BuscarAutor(int id)
+        {
+            return (AutorPublicacion)db.Ext().GetByID(id);
+        }
+
+        public void CrearLibro(Libro libro)
+        {
+            try
+            {
+                db.Store(libro);
+                db.Commit();
+                Console.WriteLine(String.Format("Libro: {0}",libro.Titulo));
+                Console.WriteLine(String.Format("ISBN: {0}", libro.ISBN.ToString()));
+                Console.WriteLine(String.Format("Año: {0}", libro.Año.ToString()));
+                foreach (var a in libro.Autores)
+                {
+                    Console.WriteLine("Autor: {0}, {1}", a.Nombre, a.Apellido);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Hubo un error, no pudo crearse el libro");
+                Console.WriteLine(e);
+            }
+        }
+
+        public List<LibrosModel> BuscarLibros()
+        {
+            List<LibrosModel> libros = new List<LibrosModel>();
+            foreach(var a in db.Query<Libro>())
+            {
+                List<AutorPublicacionModel> autores = new List<AutorPublicacionModel>();
+                foreach(var autor in a.Autores)
+                {
+                    autores.Add(new AutorPublicacionModel()
+                    {
+                        Id = db.Ext().GetID(autor),
+                        Nombre = autor.Nombre,
+                        Apellido = autor.Apellido
+                    });
+                }
+                libros.Add(new LibrosModel()
+                {
+                    Id = db.Ext().GetID(a),
+                    Titulo = a.Titulo,
+                    Autores = autores,
+                    Año = a.Año,
+                    ISBN = a.ISBN
+                });
+            }
+            return libros;
+        }
+
+        public void CrearArticulo(Articulo articulo)
+        {
+            try
+            {
+                db.Store(articulo);
+                db.Commit();
+                Console.WriteLine(String.Format("Libro: {0}", articulo.Titulo));
+                Console.WriteLine(String.Format("Año: {0}", articulo.Año.ToString()));
+                foreach (var a in articulo.Autores)
+                {
+                    Console.WriteLine("Autor: {0}, {1}", a.Nombre, a.Apellido);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Hubo un error, no pudo crearse el libro");
+                Console.WriteLine(e);
+            }
+        }
+
+        public List<ArticuloModel> BuscarArticulo()
+        {
+            List<ArticuloModel> articulos = new List<ArticuloModel>();
+            foreach (var a in db.Query<Articulo>())
+            {
+                List<AutorPublicacionModel> autores = new List<AutorPublicacionModel>();
+                foreach (var autor in a.Autores)
+                {
+                    autores.Add(new AutorPublicacionModel()
+                    {
+                        Id = db.Ext().GetID(autor),
+                        Nombre = autor.Nombre,
+                        Apellido = autor.Apellido
+                    });
+                }
+                articulos.Add(new ArticuloModel()
+                {
+                    Id = db.Ext().GetID(a),
+                    Titulo = a.Titulo,
+                    Autores = autores,
+                    Año = a.Año
+                });
+            }
+            return articulos;
+        }
+
+        public void CrearRevista(Revista revista)
+        {
+            try
+            {
+
+            }
+            catch(Exception e)
+            {
+
+            }
+        }
+
 
         /// <summary>
         /// Listar el título de todos los libros de los cuales se tiene más de un ejemplar.
@@ -143,4 +322,29 @@ namespace db4o
         public string TituloPublicacion { get; set; }
     }
 
+    public class UsuarioModel
+    {
+        public long Id { get; set; }
+        public string Nombre { get; set; }
+    }
+
+    public class AutorPublicacionModel
+    {
+        public long Id { get; set; }
+        public string Nombre { get; set; }
+        public string Apellido { get; set; }
+    }
+
+    public class LibrosModel : Publicacion
+    {
+        public long Id { get; set; }
+        public int ISBN { get; set; }
+        public List<AutorPublicacionModel> Autores { get; set; }
+    }
+
+    public class ArticuloModel : Publicacion
+    {
+        public long Id { get; set; }
+        public List<AutorPublicacionModel> Autores { get; set; }
+    }
 }
