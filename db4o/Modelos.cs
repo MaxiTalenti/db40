@@ -32,9 +32,7 @@ namespace db4o
 
     public class Ejemplar
     {
-        public Revista Revista { get; set; }
-        public Libro Libro { get; set; }
-        public Articulo Articulo { get; set; }
+        public object Publicacion { get; set; }
         public bool enBiblioteca { get; set; }
     }
 

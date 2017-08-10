@@ -186,18 +186,75 @@ namespace db4o
             return articulos;
         }
 
+        public Articulo BuscarArticulo(int id)
+        {
+            return (Articulo)db.Ext().GetByID(id);
+        }
+
         public void CrearRevista(Revista revista)
         {
             try
             {
-
+                db.Store(revista);
+                db.Commit();
+                Console.WriteLine("Título: {0}", revista.Titulo);
+                Console.WriteLine("Año: {0}", revista.Año);
+                foreach (var a in revista.Articulos)
+                    Console.WriteLine("Título revista: {0}", a.Titulo);
             }
             catch(Exception e)
             {
-
+                Console.WriteLine("Hubo un error, no pudo crearse la revista");
+                Console.WriteLine(e);
             }
         }
 
+        public List<RevistaModel> BuscarRevista()
+        {
+            List<RevistaModel> revistas = new List<RevistaModel>();
+            foreach (var a in db.Query<Revista>())
+            {
+                List<ArticuloModel> articulos = new List<ArticuloModel>();
+                foreach (var articulo in a.Articulos)
+                {
+                    ArticuloModel artm = new ArticuloModel();
+                    artm.Id = db.Ext().GetID(articulo);
+                    foreach (var b in articulo.Autores)
+                    {
+                        artm.Autores.Add(new AutorPublicacionModel()
+                        {
+                            Id = db.Ext().GetID(b),
+                            Nombre = b.Nombre,
+                            Apellido = b.Apellido
+                        });
+                    }
+                }
+                revistas.Add(new RevistaModel()
+                {
+                    Id = db.Ext().GetID(a),
+                    Titulo = a.Titulo,
+                    ISSN = a.ISSN,
+                    Año = a.Año,
+                    Articulos = articulos
+                });
+            }
+            return revistas;
+        }
+
+        public void CrearEjemplar(object Publicacion)
+        {
+            if (Publicacion is Libro || Publicacion is Revista || Publicacion is Articulo)
+            {
+                Ejemplar ej = new Ejemplar();
+                ej.Publicacion = Publicacion;
+                ej.enBiblioteca = true;
+                db.Store(ej);
+                db.Commit();
+                Console.WriteLine("El ejemplar ha sido añadido");
+            }
+            else
+                Console.WriteLine("El objeto no pertenece a una publicación");
+        }
 
         /// <summary>
         /// Listar el título de todos los libros de los cuales se tiene más de un ejemplar.
@@ -205,14 +262,20 @@ namespace db4o
         /// <returns>Títulos de libros con más de un ejemplar</returns>
         public List<string> getTituloLibrosMasDeunEjemplar()
         {
+            Console.WriteLine("Títulos de libros de más de un ejemplar");
             List<string> Titulos = new List<string>();
             foreach (var a in db.Query<Ejemplar>()
-                .Where(z => z.Libro != null)
-                .GroupBy(z => z.Libro.Titulo)
+                .Where(z => z.Publicacion is Libro)
+                .GroupBy(z => z.Publicacion)
                 .Select(g => new { g.Key, Count = g.Count() })
                 .Where(z => z.Count > 1))
             {
-                Titulos.Add(db.Query<Libro>().Where(z => z.Titulo == a.Key).SingleOrDefault().Titulo);
+                Libro libro = new Libro();
+                if (a.Key is Libro)
+                {
+                    libro = (Libro)a.Key;
+                    Titulos.Add(libro.Titulo);
+                }
             }
             return Titulos;
         }
@@ -346,5 +409,13 @@ namespace db4o
     {
         public long Id { get; set; }
         public List<AutorPublicacionModel> Autores { get; set; }
+    }
+
+    public class RevistaModel : Publicacion
+    {
+        public long Id { get; set; }
+        public int ISSN { get; set; }
+
+        public List<ArticuloModel> Articulos { get; set; }
     }
 }

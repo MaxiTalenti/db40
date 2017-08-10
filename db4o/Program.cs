@@ -32,9 +32,11 @@ namespace db4o
             Console.WriteLine("6 -> Ver todos los libros");
             Console.WriteLine("7 -> Crear un artículo");
             Console.WriteLine("8 -> Ver todos los artículos");
-
             Console.WriteLine("9 -> Crear una revista");
             Console.WriteLine("10 -> Ver todas las revistas");
+            Console.WriteLine("11 -> Crear un ejemplar");
+            Console.WriteLine("");
+            Console.WriteLine("12 -> Buscar los títulos de los libros de más de un ejemplar");
 
             Acciones acciones = new Acciones(handler.getDb());
             bool Salir = true;
@@ -121,6 +123,51 @@ namespace db4o
                             foreach (var b in a.Autores)
                                 ImprimirObjeto(b);
                         }
+                        break;
+                    case "9":
+                        Revista revista = new Revista();
+                        Console.WriteLine("Escriba el ISSN");
+                        revista.ISSN = Int32.Parse(Console.ReadLine());
+                        Console.WriteLine("Escribir el título de la revista");
+                        revista.Titulo = Console.ReadLine();
+                        Console.WriteLine("Escribir el año de la revista");
+                        revista.Año = Int32.Parse(Console.ReadLine());
+                        Console.WriteLine("Escriba los id de los artículos a asociar");
+                        foreach (var a in acciones.BuscarArticulo())
+                            ImprimirObjeto(a);
+
+                        string articulos = Console.ReadLine();
+                        List<Articulo> articulosl = new List<Articulo>();
+                        foreach (var a in articulos.Split(','))
+                            articulosl.Add(acciones.BuscarArticulo(Int32.Parse(a)));
+                        revista.Articulos = articulosl;
+                        break;
+                    case "10":
+                        foreach (var a in acciones.BuscarRevista())
+                        {
+                            ImprimirObjeto(a);
+                            foreach (var b in a.Articulos)
+                            {
+                                ImprimirObjeto(b);
+                                foreach (var c in b.Autores)
+                                    ImprimirObjeto(c);
+                            }
+                        }
+                        break;
+                    case "11":
+                        Console.WriteLine("Ejemplares disponibles para agregar");
+                        foreach (var a in acciones.BuscarArticulo())
+                            ImprimirObjeto(a);
+                        foreach (var a in acciones.BuscarLibros())
+                            ImprimirObjeto(a);
+                        foreach (var a in acciones.BuscarRevista())
+                            ImprimirObjeto(a);
+                        Console.WriteLine("Escriba el id del objeto a agregar como ejemplar a la biblioteca");
+                        acciones.CrearEjemplar(handler.getDb().Ext().GetByID(Int32.Parse(Console.ReadLine())));
+                        break;
+                    case "12":
+                        foreach (var a in acciones.getTituloLibrosMasDeunEjemplar())
+                            Console.WriteLine(a);
                         break;
                     default:
                         Salir = false;
