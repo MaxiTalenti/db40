@@ -36,7 +36,15 @@ namespace db4o
             Console.WriteLine("10 -> Ver todas las revistas");
             Console.WriteLine("11 -> Crear un ejemplar");
             Console.WriteLine("");
+            Console.WriteLine("01 -> Solicitar un préstamo");
+            Console.WriteLine("");
             Console.WriteLine("12 -> Buscar los títulos de los libros de más de un ejemplar");
+            Console.WriteLine("13 -> Apellido y nombre de los autores y el titulo de la publicación de aquellos");
+            Console.WriteLine("autores que han realizado al menos 5 publicaciones en los últimos 5 años.");
+
+            Console.WriteLine("14 -> Listar el nombre de los usuarios que han solicitado solo un préstamo en el último año.");
+            Console.WriteLine("15 -> Lista el nombre de todos los usuarios que han realizado en promedio más de 30 reservas en los últimos dos años.");
+            Console.WriteLine("16 -> Listar el título de las publicaciones, el año de publicación, y los autores de aquellas cuyo año de publicación sea par.");
 
             Acciones acciones = new Acciones(handler.getDb());
             bool Salir = true;
@@ -141,6 +149,7 @@ namespace db4o
                         foreach (var a in articulos.Split(','))
                             articulosl.Add(acciones.BuscarArticulo(Int32.Parse(a)));
                         revista.Articulos = articulosl;
+                        acciones.CrearRevista(revista);
                         break;
                     case "10":
                         foreach (var a in acciones.BuscarRevista())
@@ -165,9 +174,64 @@ namespace db4o
                         Console.WriteLine("Escriba el id del objeto a agregar como ejemplar a la biblioteca");
                         acciones.CrearEjemplar(handler.getDb().Ext().GetByID(Int32.Parse(Console.ReadLine())));
                         break;
+                    case "01":
+                        Console.WriteLine("Solicitar un préstamo");
+                        Console.WriteLine("Elegir que va a prestar");
+                        Console.WriteLine("1 -> Libro");
+                        Console.WriteLine("2 -> Revista");
+                        Console.WriteLine("1 -> Artículo");
+
+                        switch (Console.ReadLine())
+                        {
+                            case "1":
+                                Console.WriteLine("Listando todos los libros");
+                                foreach (var a in acciones.buscarEjemplaresDisponibles().Where(z => z.Publicacion is Libro))
+                                    ImprimirObjeto(a);
+                                break;
+                            case "2":
+                                Console.WriteLine("Listando todas las revistas");
+                                foreach (var a in acciones.buscarEjemplaresDisponibles().Where(z => z.Publicacion is Revista))
+                                    ImprimirObjeto(a);
+                                break;
+                            case "3":
+                                Console.WriteLine("Listando todos los artículos");
+                                foreach (var a in acciones.buscarEjemplaresDisponibles().Where(z => z.Publicacion is Articulo))
+                                    ImprimirObjeto(a);
+                                break;
+                        }
+                        Console.WriteLine("Escriba el id");
+                        object Publicacion = handler.getDb().Ext().GetByID(Int32.Parse(Console.ReadLine()));
+                        Console.WriteLine("Listando los usuarios disponibles");
+                        foreach (var a in acciones.ListarUsuarios())
+                            ImprimirObjeto(a);
+                        Console.WriteLine("Escrbia el id");
+                        Usuario user = (Usuario)handler.getDb().Ext().GetByID(Int32.Parse(Console.ReadLine()));
+                        Console.WriteLine(acciones.pedirEjemplar(Publicacion, user) ? "Se pidio el ejemplar" :
+                            "El ejemplar no pudo solicitarse, revise los datos ingresados");
+                        break;
                     case "12":
                         foreach (var a in acciones.getTituloLibrosMasDeunEjemplar())
                             Console.WriteLine(a);
+                        break;
+                    case "13":
+                        foreach (var a in acciones.getAutoresMasdeCincoPublicaciones5Años())
+                            ImprimirObjeto(a);
+                        break;
+                    case "14":
+                        foreach (var a in acciones.getUsuariosUnPrestamo())
+                            ImprimirObjeto(a);
+                        break;
+                    case "15":
+                        foreach (var a in acciones.getUsuariosMasDe30Reservas())
+                            ImprimirObjeto(a);
+                        break;
+                    case "16":
+                        foreach (var a in acciones.getPublicacionesconAutorAñoPar())
+                        {
+                            ImprimirObjeto(a.Item1);
+                            foreach (var b in a.Item2)
+                                ImprimirObjeto(b);
+                        }      
                         break;
                     default:
                         Salir = false;

@@ -98,7 +98,7 @@ namespace db4o
             {
                 db.Store(libro);
                 db.Commit();
-                Console.WriteLine(String.Format("Libro: {0}",libro.Titulo));
+                Console.WriteLine(String.Format("Libro: {0}", libro.Titulo));
                 Console.WriteLine(String.Format("ISBN: {0}", libro.ISBN.ToString()));
                 Console.WriteLine(String.Format("Año: {0}", libro.Año.ToString()));
                 foreach (var a in libro.Autores)
@@ -116,10 +116,10 @@ namespace db4o
         public List<LibrosModel> BuscarLibros()
         {
             List<LibrosModel> libros = new List<LibrosModel>();
-            foreach(var a in db.Query<Libro>())
+            foreach (var a in db.Query<Libro>())
             {
                 List<AutorPublicacionModel> autores = new List<AutorPublicacionModel>();
-                foreach(var autor in a.Autores)
+                foreach (var autor in a.Autores)
                 {
                     autores.Add(new AutorPublicacionModel()
                     {
@@ -202,7 +202,7 @@ namespace db4o
                 foreach (var a in revista.Articulos)
                     Console.WriteLine("Título revista: {0}", a.Titulo);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine("Hubo un error, no pudo crearse la revista");
                 Console.WriteLine(e);
@@ -219,6 +219,7 @@ namespace db4o
                 {
                     ArticuloModel artm = new ArticuloModel();
                     artm.Id = db.Ext().GetID(articulo);
+                    artm.Autores = new List<AutorPublicacionModel>();
                     foreach (var b in articulo.Autores)
                     {
                         artm.Autores.Add(new AutorPublicacionModel()
@@ -294,7 +295,7 @@ namespace db4o
             {
                 foreach (var articulo in db.Query<Articulo>().Where(z => z.Autores.Contains(autor)))
                 {
-                    if ((articulo.Año - DateTime.Now.Year) <= 5)
+                    if ((DateTime.Now.Year - articulo.Año) <= 5)
                     {
                         AutoresYPublicaciones aut = new AutoresYPublicaciones();
                         aut.Nombre = autor.Nombre;
@@ -306,7 +307,7 @@ namespace db4o
 
                 foreach (var libro in db.Query<Libro>().Where(z => z.Autores.Contains(autor)))
                 {
-                    if ((libro.Año - DateTime.Now.Year) <= 5)
+                    if ((DateTime.Now.Year - libro.Año) <= 5)
                     {
                         AutoresYPublicaciones aut = new AutoresYPublicaciones();
                         aut.Nombre = autor.Nombre;
@@ -349,7 +350,7 @@ namespace db4o
         public List<Tuple<Publicacion, List<AutorPublicacion>>> getPublicacionesconAutorAñoPar()
         {
             List<Tuple<Publicacion, List<AutorPublicacion>>> tupla = new List<Tuple<Publicacion, List<AutorPublicacion>>>();
-            
+
             foreach (var a in db.Query<Articulo>().Where(z => z.Año % 2 == 0).Select(x => new { x.Titulo, x.Año, x.Autores }))
             {
                 Publicacion pub = new Publicacion()
@@ -375,7 +376,75 @@ namespace db4o
             return tupla;
         }
 
-         
+        public List<EjemplarModel> buscarEjemplaresDisponibles()
+        {
+            List<EjemplarModel> lista = new List<EjemplarModel>();
+            foreach (var a in db.Query<Ejemplar>().Where(z => z.enBiblioteca == true))
+            {
+                lista.Add(new EjemplarModel
+                {
+                    Id = db.Ext().GetID(a),
+                    enBiblioteca = a.enBiblioteca,
+                    Publicacion = a.Publicacion
+                });
+            }
+            return lista;
+        }
+
+        public bool pedirEjemplar(object Publicacion, Usuario user)
+        {
+            int Cantidad = db.Query<Prestamos>().Where(z => z.Usuario == user)
+                .Where(z => z.fin == null).Count();
+
+            if (Cantidad >= 3)
+                return false;
+            else
+            {
+                Ejemplar ej = (Ejemplar)Publicacion;
+                if (db.Query<Ejemplar>().Where(z => z.Publicacion == ej.Publicacion)
+                    .Where(z => z.enBiblioteca == true).Count() >= 1)
+                {
+                    // Lo quito del ejemplar.
+                    Ejemplar ejem = db.Query<Ejemplar>().Where(z => z.Publicacion == ej.Publicacion)
+                        .Take(1)
+                        .SingleOrDefault();
+                    ejem.enBiblioteca = false;
+                    db.Store(ejem);
+
+                    // Agrego un préstamo nuevo.
+                    db.Store(new Prestamos
+                    {
+                        Ejemplar = ejem,
+                        inicio = DateTime.Now,
+                        Usuario = user
+                    });
+                    db.Commit();
+                    return true;
+                }
+                else
+                    return false;
+            }
+        }
+
+        public void devolverEjemplar(object Publicacion, Usuario user)
+        {
+            // Lo quito del ejemplar.
+            Ejemplar ejem = db.Query<Ejemplar>().Where(z => z.Publicacion == Publicacion).SingleOrDefault();
+            ejem.enBiblioteca = true;
+            db.Store(ejem);
+
+            // Va a agarrar cualquier préstamo que respecte las condiciones, no identificamos
+            // cada préstamo específicamente, se supone que no va a pedir 2 préstamos de la
+            // misma publicación.
+            Prestamos prestamo = db.Query<Prestamos>().Where(z => z.Ejemplar == ejem)
+                .Where(z => z.Usuario == user)
+                .Where(z => z.fin == null)
+                .SingleOrDefault();
+
+            prestamo.fin = DateTime.Now;
+            db.Store(prestamo);
+            db.Commit();
+        }
     }
 
     public class AutoresYPublicaciones
@@ -417,5 +486,12 @@ namespace db4o
         public int ISSN { get; set; }
 
         public List<ArticuloModel> Articulos { get; set; }
+    }
+
+    public class EjemplarModel
+    {
+        public long Id { get; set; }
+        public object Publicacion { get; set; }
+        public bool enBiblioteca { get; set; }
     }
 }
