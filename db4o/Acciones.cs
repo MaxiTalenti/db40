@@ -391,6 +391,21 @@ namespace db4o
             return lista;
         }
 
+        public List<EjemplarModel> buscarEjemplaresNoDisponibles()
+        {
+            List<EjemplarModel> lista = new List<EjemplarModel>();
+            foreach (var a in db.Query<Ejemplar>().Where(z => z.enBiblioteca == false))
+            {
+                lista.Add(new EjemplarModel
+                {
+                    Id = db.Ext().GetID(a),
+                    enBiblioteca = a.enBiblioteca,
+                    Publicacion = a.Publicacion
+                });
+            }
+            return lista;
+        }
+
         public bool pedirEjemplar(object Publicacion, Usuario user)
         {
             int Cantidad = db.Query<Prestamos>().Where(z => z.Usuario == user)

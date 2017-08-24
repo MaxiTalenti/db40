@@ -37,6 +37,7 @@ namespace db4o
             Console.WriteLine("11 -> Crear un ejemplar");
             Console.WriteLine("");
             Console.WriteLine("01 -> Solicitar un préstamo");
+            Console.WriteLine("02 -> Devolver un préstamo");
             Console.WriteLine("");
             Console.WriteLine("12 -> Buscar los títulos de los libros de más de un ejemplar");
             Console.WriteLine("13 -> Apellido y nombre de los autores y el titulo de la publicación de aquellos");
@@ -208,6 +209,15 @@ namespace db4o
                         Usuario user = (Usuario)handler.getDb().Ext().GetByID(Int32.Parse(Console.ReadLine()));
                         Console.WriteLine(acciones.pedirEjemplar(Publicacion, user) ? "Se pidio el ejemplar" :
                             "El ejemplar no pudo solicitarse, revise los datos ingresados");
+                        break;
+                    case "02":
+                        Console.WriteLine("Devolver un préstamo");
+                        Console.WriteLine("Escriba el id del ejemplar prestado");
+                        foreach (var a in acciones.buscarEjemplaresNoDisponibles())
+                            ImprimirObjeto(a);
+                        object Public = handler.getDb().Ext().GetByID(Int32.Parse(Console.ReadLine()));
+                        foreach(var a in acciones.buscarEjemplaresNoDisponibles().Where(z => z.Id == 1) 
+                        //acciones.devolverEjemplar(
                         break;
                     case "12":
                         foreach (var a in acciones.getTituloLibrosMasDeunEjemplar())
